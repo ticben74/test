@@ -1,0 +1,95 @@
+
+import { GoogleGenAI, Type } from "@google/genai";
+
+// Always use process.env.API_KEY directly for initialization as per SDK guidelines
+export const getAiClient = () => new GoogleGenAI({ apiKey: process.env.API_KEY as string });
+
+export const generateNarrativeScript = async (poiName: string, siteContext: string, tone: 'academic' | 'storytelling' | 'hybrid') => {
+  const ai = getAiClient();
+  const response = await ai.models.generateContent({
+    model: 'gemini-3-flash-preview',
+    contents: `Génère un script de visite audioguide pour le point d'intérêt suivant : "${poiName}" situé à "${siteContext}". 
+    Le ton doit être ${tone}. 
+    Structure le contenu avec : une accroche émotionnelle, un fait historique majeur, et une question engageante pour le visiteur.
+    Formatte la réponse en français.`,
+    config: {
+      temperature: 0.7,
+    }
+  });
+  return response.text;
+};
+
+export const generatePoiQuiz = async (poiName: string, description: string) => {
+  const ai = getAiClient();
+  const response = await ai.models.generateContent({
+    model: 'gemini-3-flash-preview',
+    contents: `Génère un quiz de 3 questions basé sur la description suivante pour le lieu "${poiName}": "${description}".
+    Chaque question doit avoir 4 options et une seule bonne réponse.
+    Réponds uniquement au format JSON.`,
+    config: {
+      responseMimeType: "application/json",
+      responseSchema: {
+        type: Type.ARRAY,
+        items: {
+          type: Type.OBJECT,
+          properties: {
+            question: { type: Type.STRING },
+            options: { type: Type.ARRAY, items: { type: Type.STRING } },
+            correctAnswerIndex: { type: Type.INTEGER }
+          },
+          required: ["question", "options", "correctAnswerIndex"]
+        }
+      }
+    }
+  });
+  return JSON.parse(response.text || '[]');
+};
+
+export const fetchMapsHistoricalContext = async (poiName: string, location: { lat: number, lng: number }) => {
+  const ai = getAiClient();
+  const response = await ai.models.generateContent({
+    model: "gemini-2.5-flash",
+    contents: `Donne-moi des informations historiques précises et vérifiées sur "${poiName}" à cet emplacement (${location.lat}, ${location.lng}). Utilise Google Maps pour confirmer les détails.`,
+    config: {
+      tools: [{ googleMaps: {} }],
+      toolConfig: {
+        retrievalConfig: {
+          latLng: {
+            latitude: location.lat,
+            longitude: location.lng
+          }
+        }
+      }
+    },
+  });
+  
+  const sources = response.candidates?.[0]?.groundingMetadata?.groundingChunks || [];
+  return {
+    text: response.text,
+    sources: sources.map((s: any) => s.maps?.uri).filter(Boolean)
+  };
+};
+
+export const calculateDramaScore = async (pois: any[]) => {
+  const ai = getAiClient();
+  const response = await ai.models.generateContent({
+    model: 'gemini-3-flash-preview',
+    contents: `Analyse cet arc narratif composé de ${pois.length} points d'intérêt. 
+    Les points sont : ${pois.map(p => p.name).join(', ')}.
+    Calcule un "Drama Score" de 0 à 100 basé sur la progression dramatique, l'équilibre info/émotion et la variété des formats.
+    Réponds uniquement au format JSON.`,
+    config: {
+      responseMimeType: "application/json",
+      responseSchema: {
+        type: Type.OBJECT,
+        properties: {
+          score: { type: Type.NUMBER },
+          reasoning: { type: Type.STRING },
+          suggestions: { type: Type.ARRAY, items: { type: Type.STRING } }
+        },
+        required: ["score", "reasoning", "suggestions"]
+      }
+    }
+  });
+  return JSON.parse(response.text || '{}');
+};
