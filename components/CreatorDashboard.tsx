@@ -14,6 +14,15 @@ interface CreatorProps {
 const MAX_STEPS = 9;
 const MIN_STEPS = 1;
 
+const MODULE_ICONS: Record<POIModule, React.ReactNode> = {
+  [POIModule.AUDIO]: <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z"/></svg>,
+  [POIModule.QUIZ]: <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>,
+  [POIModule.PHOTO]: <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"/></svg>,
+  [POIModule.AR]: <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>,
+  [POIModule.VIDEO]: <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg>,
+  [POIModule.GLB]: <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>,
+};
+
 const CreatorDashboard: React.FC<CreatorProps> = ({ projects, onUpdateProject, onCreateProject }) => {
   const [selectedProjectId, setSelectedProjectId] = useState<string>(projects[0]?.id || '');
   const activeProject = projects.find(p => p.id === selectedProjectId) || projects[0];
@@ -23,6 +32,7 @@ const CreatorDashboard: React.FC<CreatorProps> = ({ projects, onUpdateProject, o
   const [locationSearch, setLocationSearch] = useState<string>('');
   const [isPreviewing, setIsPreviewing] = useState(false);
   const [showQrModal, setShowQrModal] = useState(false);
+  const [tagInput, setTagInput] = useState<string>('');
 
   const handleCreateNewParcours = () => {
     const newId = `parcours-${Math.random().toString(36).substr(2, 5)}`;
@@ -44,7 +54,8 @@ const CreatorDashboard: React.FC<CreatorProps> = ({ projects, onUpdateProject, o
         act: 1, 
         type: 'CULTURAL', 
         modules: [POIModule.AUDIO], 
-        imageUrl: 'https://images.unsplash.com/photo-1467269204594-9661b134dd2b?auto=format&fit=crop&q=80&w=800' 
+        imageUrl: 'https://images.unsplash.com/photo-1467269204594-9661b134dd2b?auto=format&fit=crop&q=80&w=800',
+        tags: []
       }]
     };
     onCreateProject(newProject);
@@ -69,7 +80,8 @@ const CreatorDashboard: React.FC<CreatorProps> = ({ projects, onUpdateProject, o
       act: Math.min(3, Math.ceil((activeProject.pois.length + 1) / 3)), 
       type: 'CULTURAL', 
       modules: [POIModule.AUDIO], 
-      imageUrl: `https://picsum.photos/seed/${Math.random()}/800/600` 
+      imageUrl: `https://picsum.photos/seed/${Math.random()}/800/600`,
+      tags: []
     };
     updateProjectField('pois', [...activeProject.pois, newPoi]);
     setExpandedStepId(newStepId);
@@ -135,6 +147,23 @@ const CreatorDashboard: React.FC<CreatorProps> = ({ projects, onUpdateProject, o
       ? pois[idx].modules.filter(m => m !== mod) 
       : [...pois[idx].modules, mod];
     pois[idx] = { ...pois[idx], modules };
+    updateProjectField('pois', pois);
+  };
+
+  const handleAddTag = (idx: number, tag: string) => {
+    if (!tag.trim()) return;
+    const pois = [...activeProject.pois];
+    const currentTags = pois[idx].tags || [];
+    if (!currentTags.includes(tag.trim())) {
+      pois[idx] = { ...pois[idx], tags: [...currentTags, tag.trim()] };
+      updateProjectField('pois', pois);
+    }
+    setTagInput('');
+  };
+
+  const handleRemoveTag = (idx: number, tagToRemove: string) => {
+    const pois = [...activeProject.pois];
+    pois[idx] = { ...pois[idx], tags: (pois[idx].tags || []).filter(t => t !== tagToRemove) };
     updateProjectField('pois', pois);
   };
 
@@ -315,13 +344,70 @@ const CreatorDashboard: React.FC<CreatorProps> = ({ projects, onUpdateProject, o
 
                     <div className="col-span-5 space-y-10">
                       <section className="bg-white border border-stone-100 p-8 rounded-[3rem] space-y-6">
-                         <h5 className="text-[10px] font-black uppercase text-stone-400">Expériences</h5>
+                         <h5 className="text-[10px] font-black uppercase text-stone-400">Expériences Interactives</h5>
                          <div className="grid grid-cols-2 gap-4">
-                            {[POIModule.AUDIO, POIModule.QUIZ, POIModule.PHOTO, POIModule.AR].map(mod => (
-                              <button key={mod} onClick={() => toggleModule(idx, mod)} className={`p-6 rounded-3xl border text-[10px] font-black uppercase transition-all ${poi.modules.includes(mod) ? 'bg-amber-600 text-white border-amber-700 shadow-lg' : 'bg-stone-50 text-stone-300'}`}>
-                                {mod}
-                              </button>
+                            {[POIModule.AUDIO, POIModule.QUIZ, POIModule.PHOTO, POIModule.AR].map(mod => {
+                              const isActive = poi.modules.includes(mod);
+                              return (
+                                <button 
+                                  key={mod} 
+                                  onClick={() => toggleModule(idx, mod)} 
+                                  className={`group relative flex flex-col items-center justify-center p-6 rounded-[2rem] border-2 transition-all duration-300 ${
+                                    isActive 
+                                    ? 'bg-stone-900 text-white border-stone-900 shadow-xl scale-[1.02] active:scale-95' 
+                                    : 'bg-white text-stone-400 border-stone-50 hover:border-stone-200 hover:text-stone-600 active:scale-95'
+                                  }`}
+                                >
+                                  <div className={`mb-3 transition-transform duration-300 group-hover:scale-110 ${isActive ? 'text-amber-400' : 'text-stone-300'}`}>
+                                    {MODULE_ICONS[mod]}
+                                  </div>
+                                  <span className="text-[9px] font-black uppercase tracking-[0.2em]">{mod}</span>
+                                  
+                                  {isActive && (
+                                    <div className="absolute top-3 right-3 w-4 h-4 bg-amber-500 rounded-full flex items-center justify-center border-2 border-stone-900 shadow-sm animate-scale-up">
+                                      <svg className="w-2.5 h-2.5 text-stone-900" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="4" d="M5 13l4 4L19 7"/></svg>
+                                    </div>
+                                  )}
+                                </button>
+                              );
+                            })}
+                         </div>
+                      </section>
+
+                      <section className="bg-white border border-stone-100 p-8 rounded-[3rem] space-y-6">
+                         <h5 className="text-[10px] font-black uppercase text-stone-400">Mots-clés & Tags</h5>
+                         <div className="flex flex-wrap gap-2 mb-4">
+                            {(poi.tags || []).map(tag => (
+                              <span key={tag} className="px-3 py-1 bg-amber-50 text-amber-600 text-[10px] font-black uppercase rounded-full flex items-center space-x-2 border border-amber-100">
+                                <span>{tag}</span>
+                                <button onClick={() => handleRemoveTag(idx, tag)} className="hover:text-amber-800 focus:outline-none">
+                                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M6 18L18 6M6 6l12 12"/></svg>
+                                </button>
+                              </span>
                             ))}
+                            {(poi.tags || []).length === 0 && (
+                              <p className="text-[9px] text-stone-300 italic">Aucun tag associé</p>
+                            )}
+                         </div>
+                         <div className="flex space-x-2">
+                            <input 
+                              placeholder="Nouveau tag..." 
+                              value={tagInput}
+                              onChange={(e) => setTagInput(e.target.value)}
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter') {
+                                  e.preventDefault();
+                                  handleAddTag(idx, tagInput);
+                                }
+                              }}
+                              className="bg-stone-50 p-4 rounded-xl flex-1 text-xs border border-transparent focus:border-amber-200 focus:bg-white outline-none transition-all"
+                            />
+                            <button 
+                              onClick={() => handleAddTag(idx, tagInput)}
+                              className="bg-stone-900 text-white px-4 rounded-xl text-[10px] font-black uppercase hover:bg-amber-600 transition-colors"
+                            >
+                              Ajouter
+                            </button>
                          </div>
                       </section>
                       
@@ -354,7 +440,12 @@ const CreatorDashboard: React.FC<CreatorProps> = ({ projects, onUpdateProject, o
           from { opacity: 0; transform: translateY(20px); }
           to { opacity: 1; transform: translateY(0); }
         }
+        @keyframes scale-up {
+          from { transform: scale(0.5); opacity: 0; }
+          to { transform: scale(1); opacity: 1; }
+        }
         .animate-fade-in { animation: fade-in 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+        .animate-scale-up { animation: scale-up 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
       `}</style>
     </div>
   );

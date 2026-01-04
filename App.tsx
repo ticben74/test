@@ -25,6 +25,7 @@ const INITIAL_PROJECTS: Project[] = [
         type: 'CULTURAL', 
         modules: [POIModule.AUDIO, POIModule.QUIZ, POIModule.PHOTO, POIModule.AR], 
         imageUrl: 'https://picsum.photos/seed/klee1/800/600',
+        tags: ['Architecture', 'Histoire', 'Klee'],
         quiz: [
           {
             question: "En quelle année Paul Klee a-t-il visité Kairouan ?",
@@ -44,7 +45,8 @@ const INITIAL_PROJECTS: Project[] = [
         type: 'CULTURAL', 
         isClimax: true, 
         modules: [POIModule.AUDIO, POIModule.AR], 
-        imageUrl: 'https://picsum.photos/seed/klee6/800/600' 
+        imageUrl: 'https://picsum.photos/seed/klee6/800/600',
+        tags: ['Paysage', 'Aquarelle']
       },
     ]
   }

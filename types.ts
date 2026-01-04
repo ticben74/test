@@ -37,6 +37,7 @@ export interface POI {
   glbUrl?: string;
   isClimax?: boolean;
   quiz?: QuizQuestion[];
+  tags?: string[];
 }
 
 export interface Project {
