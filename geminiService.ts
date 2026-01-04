@@ -45,6 +45,34 @@ export const generatePoiQuiz = async (poiName: string, description: string) => {
   return JSON.parse(response.text || '[]');
 };
 
+/**
+ * Recherche un lieu via Google Maps Grounding pour obtenir ses coordonnées et son contexte historique.
+ */
+export const searchLocationWithMaps = async (locationQuery: string) => {
+  const ai = getAiClient();
+  const response = await ai.models.generateContent({
+    model: "gemini-2.5-flash",
+    contents: `Trouve les coordonnées géographiques précises (latitude et longitude) et des détails historiques pour le lieu suivant : "${locationQuery}". 
+    Réponds au format JSON avec les propriétés : lat, lng, description, officialName.`,
+    config: {
+      tools: [{ googleMaps: {} }],
+      responseMimeType: "application/json",
+      responseSchema: {
+        type: Type.OBJECT,
+        properties: {
+          lat: { type: Type.NUMBER },
+          lng: { type: Type.NUMBER },
+          description: { type: Type.STRING },
+          officialName: { type: Type.STRING }
+        },
+        required: ["lat", "lng", "description", "officialName"]
+      }
+    },
+  });
+  
+  return JSON.parse(response.text || '{}');
+};
+
 export const fetchMapsHistoricalContext = async (poiName: string, location: { lat: number, lng: number }) => {
   const ai = getAiClient();
   const response = await ai.models.generateContent({
@@ -68,28 +96,4 @@ export const fetchMapsHistoricalContext = async (poiName: string, location: { la
     text: response.text,
     sources: sources.map((s: any) => s.maps?.uri).filter(Boolean)
   };
-};
-
-export const calculateDramaScore = async (pois: any[]) => {
-  const ai = getAiClient();
-  const response = await ai.models.generateContent({
-    model: 'gemini-3-flash-preview',
-    contents: `Analyse cet arc narratif composé de ${pois.length} points d'intérêt. 
-    Les points sont : ${pois.map(p => p.name).join(', ')}.
-    Calcule un "Drama Score" de 0 à 100 basé sur la progression dramatique, l'équilibre info/émotion et la variété des formats.
-    Réponds uniquement au format JSON.`,
-    config: {
-      responseMimeType: "application/json",
-      responseSchema: {
-        type: Type.OBJECT,
-        properties: {
-          score: { type: Type.NUMBER },
-          reasoning: { type: Type.STRING },
-          suggestions: { type: Type.ARRAY, items: { type: Type.STRING } }
-        },
-        required: ["score", "reasoning", "suggestions"]
-      }
-    }
-  });
-  return JSON.parse(response.text || '{}');
 };
