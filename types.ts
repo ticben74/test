@@ -35,6 +35,7 @@ export interface POI {
   videoUrl?: string;
   imageUrl?: string;
   glbUrl?: string;
+  arOverlayUrl?: string;
   isClimax?: boolean;
   quiz?: QuizQuestion[];
   tags?: string[];
@@ -42,6 +43,7 @@ export interface POI {
 
 export interface Project {
   id: string;
+  tenantId: string; // Pour l'aspect SaaS Multi-tenant
   title: string;
   slug: string;
   siteName: string;
@@ -50,11 +52,9 @@ export interface Project {
   pois: POI[];
   status: ProjectStatus;
   dramaScore?: number;
-  contributorId?: string;
-  inviteToken?: string;
-  completionMessage?: string; // Message de fin personnalisé
-  completionCtaLabel?: string; // Label du bouton de fin
-  completionCtaUrl?: string;   // URL (don, newsletter, etc.)
+  completionMessage?: string;
+  completionCtaLabel?: string;
+  completionCtaUrl?: string;
 }
 
 export interface UserState {

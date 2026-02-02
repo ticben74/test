@@ -7,6 +7,8 @@ import { Project, POIModule } from './types';
 const INITIAL_PROJECTS: Project[] = [
   {
     id: 'klee-1914',
+    // Added missing tenantId to match Project interface requirements
+    tenantId: 'tenant-kairouan',
     title: 'Sur les traces de Paul Klee',
     slug: 'paul-klee-kairouan',
     siteName: 'Kairouan, Tunisie',

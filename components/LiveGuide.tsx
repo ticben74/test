@@ -65,7 +65,8 @@ const LiveGuide: React.FC<LiveGuideProps> = ({ onClose, poiName }) => {
 
         const ai = getAiClient();
         const sessionPromise = ai.live.connect({
-          model: 'gemini-2.5-flash-native-audio-preview-09-2025',
+          // Updated to the recommended model for real-time audio conversation tasks
+          model: 'gemini-2.5-flash-native-audio-preview-12-2025',
           config: {
             responseModalities: [Modality.AUDIO],
             speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: 'Puck' } } },
@@ -81,6 +82,7 @@ const LiveGuide: React.FC<LiveGuideProps> = ({ onClose, poiName }) => {
               scriptProcessor.onaudioprocess = (e) => {
                 const inputData = e.inputBuffer.getChannelData(0);
                 const pcmBlob = createBlob(inputData);
+                // Initiate sendRealtimeInput after the session promise resolves to avoid race conditions
                 sessionPromise.then(s => s.sendRealtimeInput({ media: pcmBlob }));
               };
               source.connect(scriptProcessor);
@@ -88,13 +90,12 @@ const LiveGuide: React.FC<LiveGuideProps> = ({ onClose, poiName }) => {
             },
             onmessage: async (message: LiveServerMessage) => {
               // Handle Transcriptions
-              if (message.serverContent?.inputTranscription) {
-                const text = message.serverContent.inputTranscription.text;
-                setTranscription(prev => [...prev, { role: 'user', text }]);
-              }
               if (message.serverContent?.outputTranscription) {
                 const text = message.serverContent.outputTranscription.text;
                 setTranscription(prev => [...prev, { role: 'model', text }]);
+              } else if (message.serverContent?.inputTranscription) {
+                const text = message.serverContent.inputTranscription.text;
+                setTranscription(prev => [...prev, { role: 'user', text }]);
               }
 
               // Handle Audio

@@ -4,10 +4,11 @@ import React, { useEffect, useRef, useState } from 'react';
 interface CameraModuleProps {
   mode: 'PHOTO' | 'AR';
   poiName: string;
+  arOverlayUrl?: string; // New optional prop
   onCapture?: (blob: Blob) => void;
 }
 
-const CameraModule: React.FC<CameraModuleProps> = ({ mode, poiName, onCapture }) => {
+const CameraModule: React.FC<CameraModuleProps> = ({ mode, poiName, arOverlayUrl, onCapture }) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [stream, setStream] = useState<MediaStream | null>(null);
@@ -83,13 +84,17 @@ const CameraModule: React.FC<CameraModuleProps> = ({ mode, poiName, onCapture })
       {/* AR Overlays */}
       {mode === 'AR' && (
         <div className="absolute inset-0 pointer-events-none mix-blend-overlay opacity-60">
-           <svg className="w-full h-full text-amber-900/40" viewBox="0 0 100 100" preserveAspectRatio="none">
-              <path d="M0 80 Q 50 70 100 85 V 100 H 0 Z" fill="currentColor" />
-              <rect x="20" y="40" width="15" height="40" fill="currentColor" />
-              <rect x="65" y="35" width="20" height="45" fill="currentColor" />
-           </svg>
-           <div className="absolute top-10 left-10 right-10 border-2 border-amber-500/20 rounded-lg p-2 text-center">
-              <span className="text-[8px] font-black text-amber-500 uppercase tracking-widest">Reconstruction 1914 en cours</span>
+           {arOverlayUrl ? (
+             <img src={arOverlayUrl} className="w-full h-full object-cover grayscale brightness-125" alt="AR Overlay" />
+           ) : (
+             <svg className="w-full h-full text-amber-900/40" viewBox="0 0 100 100" preserveAspectRatio="none">
+                <path d="M0 80 Q 50 70 100 85 V 100 H 0 Z" fill="currentColor" />
+                <rect x="20" y="40" width="15" height="40" fill="currentColor" />
+                <rect x="65" y="35" width="20" height="45" fill="currentColor" />
+             </svg>
+           )}
+           <div className="absolute top-10 left-10 right-10 border-2 border-amber-500/20 rounded-lg p-2 text-center bg-black/20 backdrop-blur-sm">
+              <span className="text-[8px] font-black text-amber-500 uppercase tracking-widest">Reconstruction temporelle active</span>
            </div>
         </div>
       )}

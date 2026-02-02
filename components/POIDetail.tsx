@@ -17,15 +17,14 @@ const POIDetail: React.FC<POIDetailProps> = ({ poi, onClose, onVisited }) => {
   const [audioProgress, setAudioProgress] = useState(0);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [shake, setShake] = useState(false);
+  const [glbLoaded, setGlbLoaded] = useState(false);
   
-  // New state for detailed historical context
   const [historicalData, setHistoricalData] = useState<{ text: string, sources: string[] } | null>(null);
   const [isLoadingContext, setIsLoadingContext] = useState(false);
   
   const timerRef = useRef<number | null>(null);
 
   useEffect(() => {
-    // Fetch detailed historical context using Gemini + Google Maps Grounding
     const loadHistoricalContext = async () => {
       setIsLoadingContext(true);
       try {
@@ -82,7 +81,31 @@ const POIDetail: React.FC<POIDetailProps> = ({ poi, onClose, onVisited }) => {
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
+  /**
+   * Extrait l'URL d'intégration à partir d'une URL YouTube ou Vimeo de manière robuste.
+   */
+  const getVideoEmbedUrl = (url?: string) => {
+    if (!url) return null;
+
+    // Regex YouTube
+    const ytRegex = /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/i;
+    const ytMatch = url.match(ytRegex);
+    if (ytMatch && ytMatch[1]) {
+      return `https://www.youtube.com/embed/${ytMatch[1]}?autoplay=0&rel=0&modestbranding=1`;
+    }
+
+    // Regex Vimeo
+    const vimeoRegex = /(?:vimeo\.com\/|player\.vimeo\.com\/video\/)([0-9]+)/i;
+    const vimeoMatch = url.match(vimeoRegex);
+    if (vimeoMatch && vimeoMatch[1]) {
+      return `https://player.vimeo.com/video/${vimeoMatch[1]}?badge=0&autopause=0&player_id=0&app_id=58479`;
+    }
+
+    return null;
+  };
+
   const currentQuestion = poi.quiz?.[currentQuestionIndex];
+  const videoEmbed = getVideoEmbedUrl(poi.videoUrl);
 
   return (
     <div className="absolute inset-0 bg-[#fcfaf7] z-40 flex flex-col animate-slide-up">
@@ -159,7 +182,6 @@ const POIDetail: React.FC<POIDetailProps> = ({ poi, onClose, onVisited }) => {
                         style={{ width: `${audioProgress}%` }}
                       />
                     </div>
-                    {/* Visualizer Simulation */}
                     <div className="flex items-end justify-center space-x-1 h-6 pt-2">
                        {[...Array(12)].map((_, i) => (
                          <div 
@@ -183,7 +205,6 @@ const POIDetail: React.FC<POIDetailProps> = ({ poi, onClose, onVisited }) => {
                  </p>
               </div>
 
-              {/* NEW: Contextual Information Section */}
               <div className="pt-10 border-t border-stone-200">
                 <div className="flex items-center justify-between mb-6 px-2">
                    <div className="flex items-center space-x-3">
@@ -191,10 +212,6 @@ const POIDetail: React.FC<POIDetailProps> = ({ poi, onClose, onVisited }) => {
                         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/></svg>
                       </div>
                       <h3 className="text-xl font-serif font-bold text-stone-900">Archive & Contexte</h3>
-                   </div>
-                   <div className="flex items-center space-x-2 px-3 py-1 bg-blue-50 text-blue-600 rounded-full border border-blue-100 shadow-sm">
-                      <div className="w-1.5 h-1.5 bg-blue-500 rounded-full animate-pulse" />
-                      <span className="text-[8px] font-black uppercase tracking-widest">Recherche IA</span>
                    </div>
                 </div>
 
@@ -235,11 +252,95 @@ const POIDetail: React.FC<POIDetailProps> = ({ poi, onClose, onVisited }) => {
                   </div>
                 ) : (
                   <div className="p-8 text-center text-stone-400 italic text-sm">
-                    Aucune donnée archivistique supplémentaire trouvée pour ce lieu.
+                    Aucune donnée archivistique supplémentaire trouvée.
                   </div>
                 )}
               </div>
             </div>
+          )}
+
+          {activeModule === POIModule.VIDEO && (
+            <div className="space-y-8 animate-fade-in">
+              <div className="relative aspect-video rounded-[2.5rem] overflow-hidden shadow-2xl bg-black border border-stone-800">
+                {videoEmbed ? (
+                  <iframe 
+                    src={videoEmbed} 
+                    className="w-full h-full" 
+                    title={`${poi.name} - Intégration Vidéo`}
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+                    allowFullScreen
+                  />
+                ) : poi.videoUrl ? (
+                  <video 
+                    src={poi.videoUrl} 
+                    controls 
+                    playsInline
+                    controlsList="nodownload"
+                    className="w-full h-full object-contain"
+                  />
+                ) : (
+                  <div className="w-full h-full flex flex-col items-center justify-center text-stone-500 space-y-4">
+                    <svg className="w-12 h-12 opacity-30" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg>
+                    <p className="text-[10px] font-black uppercase tracking-widest">Contenu vidéo non disponible</p>
+                  </div>
+                )}
+              </div>
+              <div className="bg-white rounded-[2rem] p-6 border border-stone-100 flex items-start space-x-4 shadow-sm">
+                <div className="w-10 h-10 bg-blue-50 rounded-xl flex items-center justify-center text-blue-600 flex-shrink-0">
+                   <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 14.5v-9l6 4.5-6 4.5z"/></svg>
+                </div>
+                <div className="space-y-1">
+                  <h4 className="text-xs font-black uppercase text-stone-900">Vision Cinématographique</h4>
+                  <p className="text-[10px] text-stone-500 font-medium leading-relaxed">
+                    Explorez ce lieu à travers une perspective documentaire. Le lecteur supporte les formats haute définition et les intégrations YouTube/Vimeo.
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {activeModule === POIModule.GLB && (
+             <div className="space-y-8 animate-fade-in">
+                <div className="aspect-square rounded-[3rem] bg-stone-100 overflow-hidden relative border border-stone-200 shadow-inner flex items-center justify-center group">
+                   {poi.glbUrl ? (
+                     <>
+                        {!glbLoaded && (
+                           <div className="absolute inset-0 flex flex-col items-center justify-center space-y-4 bg-stone-50 z-10">
+                              <div className="w-12 h-12 border-4 border-stone-200 border-t-amber-600 rounded-full animate-spin" />
+                              <span className="text-[8px] font-black uppercase tracking-widest text-stone-400">Rendu de l'artefact...</span>
+                           </div>
+                        )}
+                        <model-viewer
+                          src={poi.glbUrl}
+                          camera-controls
+                          auto-rotate
+                          shadow-intensity="1"
+                          onLoad={() => setGlbLoaded(true)}
+                          aria-label={`Un modèle 3D de ${poi.name}`}
+                        ></model-viewer>
+                        
+                        <div className="absolute bottom-6 right-6 flex space-x-2">
+                           <button className="p-3 bg-white/80 backdrop-blur-md rounded-xl text-stone-900 shadow-lg border border-white/40 active:scale-95 transition-all">
+                              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"/></svg>
+                           </button>
+                        </div>
+                     </>
+                   ) : (
+                     <div className="text-stone-300 flex flex-col items-center">
+                        <svg className="w-16 h-16 opacity-20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" strokeWidth="1.5"/></svg>
+                        <p className="text-[10px] font-black uppercase tracking-widest mt-4">Artefact 3D non configuré</p>
+                     </div>
+                   )}
+                </div>
+                <div className="bg-amber-50 rounded-3xl p-6 border border-amber-100 flex items-start space-x-4">
+                   <div className="w-10 h-10 bg-amber-100 rounded-2xl flex-shrink-0 flex items-center justify-center text-amber-600">
+                      <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/></svg>
+                   </div>
+                   <p className="text-[11px] text-amber-900 font-medium leading-relaxed">
+                     Manipulez cet objet sacré pour en découvrir les détails invisibles à l'œil nu. Utilisez un doigt pour tourner et deux pour zoomer.
+                   </p>
+                </div>
+             </div>
           )}
 
           {(activeModule === POIModule.PHOTO || activeModule === POIModule.AR) && (
@@ -248,18 +349,12 @@ const POIDetail: React.FC<POIDetailProps> = ({ poi, onClose, onVisited }) => {
                 <CameraModule 
                   mode={activeModule === POIModule.PHOTO ? 'PHOTO' : 'AR'} 
                   poiName={poi.name}
+                  arOverlayUrl={poi.arOverlayUrl}
                   onCapture={(blob) => {
                     console.log("Captured image blob:", blob);
                     onVisited(50);
                   }}
                 />
-                
-                {activeModule === POIModule.AR && (
-                  <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none text-center w-full px-10 space-y-4">
-                     <div className="w-20 h-20 border-2 border-dashed border-white/40 rounded-full mx-auto animate-ping" />
-                     <p className="text-white text-[10px] font-black uppercase tracking-widest drop-shadow-lg">Alignez l'horizon pour révéler le passé</p>
-                  </div>
-                )}
               </div>
 
               <div className="bg-amber-50 rounded-3xl p-6 border border-amber-100 flex items-start space-x-4">
@@ -269,7 +364,7 @@ const POIDetail: React.FC<POIDetailProps> = ({ poi, onClose, onVisited }) => {
                  <p className="text-[11px] text-amber-900 font-medium leading-relaxed">
                    {activeModule === POIModule.PHOTO 
                      ? "Prenez un cliché mémoriel de cet édifice. Votre photo sera archivée dans votre journal de bord et vous rapportera 50 XP." 
-                     : "La vision temporelle utilise les croquis originaux de Paul Klee de 1914 pour reconstituer les couleurs perdues de la Médina."}
+                     : "La vision temporelle utilise les archives visuelles configurées pour reconstituer la vue historique du lieu."}
                  </p>
               </div>
             </div>
@@ -349,15 +444,6 @@ const POIDetail: React.FC<POIDetailProps> = ({ poi, onClose, onVisited }) => {
                     <p className="text-[10px] text-stone-400 uppercase font-black tracking-[0.4em]">Palier validé • +100 XP</p>
                   </div>
                   
-                  <div className="bg-white/5 rounded-3xl p-8 text-left border border-white/10 backdrop-blur-sm relative overflow-hidden group">
-                    <div className="absolute top-0 right-0 p-4 text-white/5 group-hover:text-amber-500/10 transition-colors">
-                      <svg className="w-24 h-24" fill="currentColor" viewBox="0 0 24 24"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
-                    </div>
-                    <p className="text-sm text-stone-300 leading-relaxed font-serif italic border-l-4 border-amber-500 pl-6 py-2">
-                      "Votre compréhension approfondie de {poi.name} fait de vous un ambassadeur de notre patrimoine. Continuez à porter cette flamme."
-                    </p>
-                  </div>
-
                   <button 
                     onClick={onClose}
                     className="w-full py-5 bg-white text-stone-900 rounded-2xl text-[11px] font-black uppercase tracking-[0.3em] hover:bg-stone-100 transition-all shadow-2xl active:scale-95"
@@ -396,15 +482,6 @@ const POIDetail: React.FC<POIDetailProps> = ({ poi, onClose, onVisited }) => {
         }
         .scrollbar-hide::-webkit-scrollbar { display: none; }
         .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
-        
-        @keyframes slide-up {
-          from { transform: translateY(100%); opacity: 0; }
-          to { transform: translateY(0); opacity: 1; }
-        }
-        @keyframes fade-in {
-          from { opacity: 0; }
-          to { opacity: 1; }
-        }
       `}</style>
     </div>
   );
